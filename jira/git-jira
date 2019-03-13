@@ -32,13 +32,13 @@ if __name__ == '__main__':
     uri = f'{jira_api}/latest/issue/ARROW-{args.issue_number}'
     tag, summary = tag_split(requests.get(uri).json()['fields']['summary'])
 
-    branchnamelength = 40
+    sluglength = 40
     try:
-        branchnamelength = int(subprocess.check_call(f'git config jira.branchnamelength'.split(), stderr=subprocess.DEVNULL))
+        sluglength = int(subprocess.check_output(f'git config jira.sluglength'.split(), stderr=subprocess.DEVNULL))
     except:
         pass
-    slug = slugify(summary)
-    branch_name = f'ARROW-{args.issue_number}-{slug}'[:branchnamelength]
+    slug = slugify(summary)[:sluglength]
+    branch_name = f'ARROW-{args.issue_number}-{slug}'
 
     try:
         subprocess.check_call(f'git checkout {branch_name}'.split(), stderr=subprocess.DEVNULL)
@@ -46,4 +46,3 @@ if __name__ == '__main__':
         subprocess.check_call('git checkout master'.split())
         subprocess.check_call('git pull --ff-only'.split())
         subprocess.check_call(f'git checkout -b {branch_name}'.split())
-
