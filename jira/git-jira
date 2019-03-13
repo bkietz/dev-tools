@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+"""
+Simple script for creating a branch from a jira number.
+"""
+
+import re
+import argparse
+import requests
+import subprocess
+
+# https://developer.atlassian.com/server/jira/platform/rest-apis/
+jira_api = 'https://issues.apache.org/jira/rest/api'
+
+def tag_split(s):
+    return [g.strip() for g in re.match('^\[([^\]]+)\](.*)$', s.strip()).groups()]
+
+def slugify(s):
+    # pace https://blog.dolphm.com/slugify-a-string-in-python
+    for c in ' /-.':
+        s = s.replace(c, '_')
+    s = re.sub('\W', '', s)
+    s = re.sub('_+', ' ', s)
+    s = s.strip()
+    s = s.replace(' ', '-')
+    return s
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog='git-jira', allow_abbrev=True)
+    parser.add_argument('issue_number', help='issue number to fetch')
+    args = parser.parse_args()
+    uri = f'{jira_api}/latest/issue/ARROW-{args.issue_number}'
+    tag, summary = tag_split(requests.get(uri).json()['fields']['summary'])
+    slug = slugify(summary)[:40]
+    branch_name = f'ARROW-{args.issue_number}-{slug}'
+    try:
+        subprocess.check_call(f'git checkout {branch_name}'.split(), stderr=subprocess.DEVNULL)
+    except:
+        subprocess.check_call('git checkout master'.split())
+        subprocess.check_call('git pull --ff-only'.split())
+        subprocess.check_call(f'git checkout -b {branch_name}'.split())
+
