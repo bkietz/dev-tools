@@ -2,6 +2,13 @@
 
 """
 Simple script for creating a branch from a jira number.
+
+Configure branch name template with:
+
+  git config jira.branchtemplate '{issue_number}-{slug:.25}'
+  
+Uses python format string syntax, see
+https://pyformat.info/
 """
 
 import re
@@ -32,13 +39,14 @@ if __name__ == '__main__':
     uri = f'{jira_api}/latest/issue/ARROW-{args.issue_number}'
     tag, summary = tag_split(requests.get(uri).json()['fields']['summary'])
 
-    sluglength = 40
+    branchtemplate = 'ARROW-{issue_number}-{slug:.40}'
     try:
-        sluglength = int(subprocess.check_output(f'git config jira.sluglength'.split(), stderr=subprocess.DEVNULL))
+        branchtemplate = subprocess.check_output(f'git config jira.branchtemplate'.split(),
+                                                 stderr=subprocess.DEVNULL).decode('utf-8')
     except:
         pass
-    slug = slugify(summary)[:sluglength]
-    branch_name = f'ARROW-{args.issue_number}-{slug}'
+    slug = slugify(summary)
+    branch_name = branchtemplate.format(slug=slug, issue_number=args.issue_number)
 
     try:
         subprocess.check_call(f'git checkout {branch_name}'.split(), stderr=subprocess.DEVNULL)
